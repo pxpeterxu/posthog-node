@@ -10,6 +10,7 @@ declare module 'posthog-node' {
         personalApiKey?: string
         featureFlagsPollingInterval?: number
     }
+
     interface IdentifyMessage {
         distinctId: string
         properties?: Record<string | number, any>
@@ -31,6 +32,7 @@ declare module 'posthog-node' {
 
     export default class PostHog {
         constructor(apiKey: string, options?: Option)
+
         /**
          * @description Capture allows you to capture anything a user does within your system,
          * which you can later use in PostHog to find patterns in usage,
@@ -41,7 +43,10 @@ declare module 'posthog-node' {
          * @param properties OPTIONAL | which can be a object with any information you'd like to add
          * @param groups OPTIONAL | object of what groups are related to this event, example: { company: 'id:5' }. Can be used to analyze companies instead of users.
          */
-        capture({ distinctId, event, properties, groups }: EventMessage): void
+        capture(
+            { distinctId, event, properties, groups }: EventMessage,
+            callback?: (err: Error | undefined) => unknown
+        ): void
 
         /**
          * @description Identify lets you add metadata on your users so you can more easily identify who they are in PostHog,
@@ -50,7 +55,7 @@ declare module 'posthog-node' {
          * @param distinctId which uniquely identifies your user
          * @param properties with a dict with any key: value pairs
          */
-        identify({ distinctId, properties }: IdentifyMessage): void
+        identify({ distinctId, properties }: IdentifyMessage, callback?: (err: Error | undefined) => unknown): void
 
         /**
          * @description To marry up whatever a user does before they sign up or log in with what they do after you need to make an alias call.
@@ -59,12 +64,11 @@ declare module 'posthog-node' {
          * In a purely back-end implementation, this means whenever an anonymous user does something, you'll want to send a session ID with the capture call.
          * Then, when that users signs up, you want to do an alias call with the session ID and the newly created user ID.
          * The same concept applies for when a user logs in. If you're using PostHog in the front-end and back-end,
-         *  doing the identify call in the frontend will be enough.:
+         *    doing the identify call in the frontend will be enough.:
          * @param distinctId the current unique id
          * @param alias the unique ID of the user before
          */
-        alias(data: { distinctId: string; alias: string }): void
-
+        alias(data: { distinctId: string; alias: string }, callback?: (err: Error | undefined) => unknown): void
 
         /**
          * @description PostHog feature flags (https://posthog.com/docs/features/feature-flags)
@@ -76,9 +80,13 @@ declare module 'posthog-node' {
          * @param distinctId the current unique id
          * @param defaultResult optional - default value to be returned if the feature flag is not on for the user
          * @param groups optional - what groups are currently active (group analytics)
-        */
-        isFeatureEnabled(key: string, distinctId: string, defaultResult?: boolean, groups?: Record<GroupType, GroupKey>): Promise<boolean>
-
+         */
+        isFeatureEnabled(
+            key: string,
+            distinctId: string,
+            defaultResult?: boolean,
+            groups?: Record<GroupType, GroupKey>
+        ): Promise<boolean>
 
         /**
          * @description Sets a groups properties, which allows asking questions like "Who are the most active companies"
@@ -87,20 +95,24 @@ declare module 'posthog-node' {
          * @param groupType Type of group (ex: 'company'). Limited to 5 per project
          * @param groupKey Unique identifier for that type of group (ex: 'id:5')
          * @param properties OPTIONAL | which can be a object with any information you'd like to add
-        */
-       groupIdentify({ groupType, groupKey, properties }: GroupIdentifyMessage): void
+         */
+        groupIdentify({ groupType, groupKey, properties }: GroupIdentifyMessage): void
 
         /**
          * @description Force an immediate reload of the polled feature flags. Please note that they are
          * already polled automatically at a regular interval.
-        */
+         */
         reloadFeatureFlags(): Promise<void>
+
+        /**
+         * @description Flushes the events still in the queue
+         */
+        flush(): void
 
         /**
          * @description Flushes the events still in the queue and clears the feature flags poller to allow for
          * a clean shutdown.
-        */
+         */
         shutdown(): void
     }
-
 }
